@@ -15,21 +15,29 @@ export function scoreFor(observations: Observation[]) {
   const sum = complete.reduce((total, o) => total + .4 * o.cleanliness! + .35 * o.privacy! + .25 * o.upkeep!, 0);
   return { value: Math.round(((sum + 3 * 3.5) / (complete.length + 3)) * 10) / 10, count: complete.length, provisional: complete.length < 3 };
 }
+export function cleanlinessFor(observations: Observation[]) {
+  const values = publicObservations(observations).flatMap(o => o.cleanliness === null ? [] : [o.cleanliness]);
+  if (!values.length) return { value: null, count: 0 };
+  return { value: Math.round(values.reduce((total, value) => total + value, 0) / values.length * 10) / 10, count: values.length };
+}
 export function effectiveAccess(b: Bathroom): Access { return b.access_category_override ?? b.building.access_category; }
 export function lastObserved(b: Bathroom) { return publicObservations(b.observations).reduce<string | null>((latest, o) => !latest || o.observed_at > latest ? o.observed_at : latest, null); }
 export function distanceTo(b: Bathroom, start: { lat: number; lng: number } | null) { const { entrance_lat: lat, entrance_lng: lng } = b.building; return start && lat !== null && lng !== null ? distanceMeters(start, { lat, lng }) : null; }
 export function visibleBathrooms(bathrooms: Bathroom[], filters: Filters, sort: Sort, start: { lat: number; lng: number } | null) {
-  return bathrooms.filter(b => b.is_active && b.is_published && effectiveAccess(b) !== 'restricted')
+  return bathrooms.filter(b => b.is_active && b.is_published)
     .filter(b => !filters.allGender || b.restroom_type === 'all_gender')
     .filter(b => !filters.accessible || (b.wheelchair_accessible === true && b.verification_status === 'field_verified'))
     .filter(b => !filters.private || b.single_occupancy === true)
     .filter(b => !filters.idAllowed || ['unrestricted', 'columbia_id'].includes(effectiveAccess(b)))
     .filter(b => !filters.verifiedOnly || b.verification_status === 'field_verified')
     .sort((a, b) => {
+      if (effectiveAccess(a) === 'restricted' && effectiveAccess(b) !== 'restricted') return 1;
+      if (effectiveAccess(b) === 'restricted' && effectiveAccess(a) !== 'restricted') return -1;
+      if (sort === 'cleanest') { const delta = (cleanlinessFor(b.observations).value ?? -1) - (cleanlinessFor(a.observations).value ?? -1); if (delta) return delta; }
       if (sort === 'score') { const delta = (scoreFor(b.observations).value ?? -1) - (scoreFor(a.observations).value ?? -1); if (delta) return delta; }
       if (sort === 'recent') { const delta = (lastObserved(b) ?? '').localeCompare(lastObserved(a) ?? ''); if (delta) return delta; }
-      if (sort === 'closest') { const da = distanceTo(a, start), db = distanceTo(b, start); if (da !== db) { if (da === null) return 1; if (db === null) return -1; return da - db; } const recency = (lastObserved(b) ?? '').localeCompare(lastObserved(a) ?? ''); if (recency) return recency; }
+      if (sort === 'closest' || sort === 'cleanest') { const da = distanceTo(a, start), db = distanceTo(b, start); if (da !== db) { if (da === null) return 1; if (db === null) return -1; return da - db; } if (sort === 'closest') { const clean = (cleanlinessFor(b.observations).value ?? -1) - (cleanlinessFor(a.observations).value ?? -1); if (clean) return clean; const recency = (lastObserved(b) ?? '').localeCompare(lastObserved(a) ?? ''); if (recency) return recency; } }
       return a.building.name.localeCompare(b.building.name) || a.floor_label.localeCompare(b.floor_label) || a.id.localeCompare(b.id);
     });
 }
-export const accessLabel = (access: Access) => ({ unrestricted: 'No ID requirement confirmed', columbia_id: 'Columbia ID may be required', restricted: 'Restricted access', unknown: 'Access unknown' })[access];
+export const accessLabel = (access: Access) => ({ unrestricted: 'No ID requirement confirmed', columbia_id: 'Authorized Columbia ID required', restricted: 'Resident-only access', unknown: 'Access unknown' })[access];

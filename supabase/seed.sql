@@ -1,9 +1,9 @@
 -- Official Columbia Housing floor-plan candidates reviewed 2026-10-21.
 -- These are published as unverified candidates, never as field-checked locations.
-insert into public.buildings (id, name, aliases, entrance_notes, access_category) values
-('11111111-1111-4111-8111-111111111111', 'Schapiro Hall', array['Schapiro', '605 W 115th Street'], 'Columbia Housing lists the entrance at 605 W. 115th Street; the approach has not been field checked.', 'unknown'),
-('22222222-2222-4222-8222-222222222222', 'Broadway Hall', array['Broadway', '2900 Broadway'], 'Columbia Housing lists the entrance at West 114th Street and Broadway; the approach has not been field checked.', 'unknown'),
-('33333333-3333-4333-8333-333333333333', 'Furnald Hall', array['Furnald'], 'Columbia Housing lists the entrance inside campus along South Lawns; the approach has not been field checked.', 'unknown')
+insert into public.buildings (id, name, aliases, entrance_lat, entrance_lng, entrance_notes, access_category) values
+('11111111-1111-4111-8111-111111111111', 'Schapiro Hall', array['Schapiro', '605 W 115th Street'], 40.807722, -73.967213, 'Columbia Housing lists the entrance at 605 W. 115th Street. Map position is approximate; the approach has not been field checked.', 'unknown'),
+('22222222-2222-4222-8222-222222222222', 'Broadway Hall', array['Broadway'], 40.806280, -73.966607, 'Columbia Housing lists the entrance at West 114th Street and Broadway. Map position is approximate; the approach has not been field checked.', 'unknown'),
+('33333333-3333-4333-8333-333333333333', 'Furnald Hall', array['Furnald'], 40.807423, -73.966182, 'Columbia Housing lists the entrance inside campus along South Lawns. Map position is approximate; the approach has not been field checked.', 'unknown')
 on conflict (id) do nothing;
 
 insert into public.bathrooms (id, building_id, slug, floor_label, location_hint, restroom_type, single_occupancy, source_url, source_accessed_at, verification_status, is_published) values
